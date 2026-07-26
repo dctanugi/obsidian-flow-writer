@@ -117,9 +117,10 @@ const lockFilter = EditorState.transactionFilter.of((tr) => {
 	const session = tr.startState.field(flowSessionField, false);
 	if (!session) return tr;
 
-	// Never interfere with the transaction that leaves flow mode.
-	if (isSessionChange(tr)) return tr;
-
+	// Check the changes before anything else, including on transactions that
+	// also carry an enter/exit effect. Carrying a session effect is not a
+	// licence to rewrite the document: exempting those transactions would let
+	// a single dispatch both unlock and empty a sealed note.
 	if (tr.docChanged) {
 		let touchesSealed = false;
 		tr.changes.iterChanges((fromA) => {
@@ -128,17 +129,33 @@ const lockFilter = EditorState.transactionFilter.of((tr) => {
 		// Cancel outright. The document is left untouched and nothing is
 		// reported to the user — the keystroke simply does nothing.
 		if (touchesSealed) return [];
-		return tr;
 	}
 
-	// Selection-only transactions: the caret is pinned to the end of the
-	// document, so anything that would move it elsewhere is dropped. Because
-	// every permitted edit is an append, ordinary typing leaves the caret at
-	// the end on its own and never reaches this branch.
-	if (tr.selection) {
-		const end = tr.newDoc.length;
-		const { anchor, head } = tr.selection.main;
-		if (anchor !== end || head !== end) return [];
+	// Leaving flow mode hands the document back, caret included.
+	if (isSessionChange(tr)) return tr;
+
+	// Pin the caret to the write-head. This is checked on *every* surviving
+	// transaction, not just selection-only ones, because a permitted edit that
+	// also parks the caret in sealed text would wedge the session: every later
+	// keystroke would target a sealed offset and be silently rejected, with
+	// undo blocked and no way back.
+	//
+	// `newSelection` rather than `tr.selection` so that an edit which sets no
+	// selection of its own — leaving CodeMirror to map the old one forward — is
+	// caught too. The correction is appended as a second spec rather than the
+	// transaction being rejected, so legitimate input from paths that place the
+	// caret unusually (IME composition, autocomplete) still lands.
+	const end = tr.newDoc.length;
+	const selection = tr.newSelection;
+	if (
+		selection.ranges.length !== 1 ||
+		selection.main.anchor !== end ||
+		selection.main.head !== end
+	) {
+		// `sequential` is load-bearing: without it the merged spec's selection
+		// is read against the *start* document and mapped forward, so an offset
+		// taken from `newDoc` overruns whenever the transaction inserted text.
+		return [tr, { selection: EditorSelection.cursor(end), sequential: true }];
 	}
 
 	return tr;

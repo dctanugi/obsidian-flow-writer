@@ -1,0 +1,88 @@
+/* Flow Writer
+ *
+ * Every rule here is scoped to .flow-writer-active, which lives on the flow
+ * leaf's container and only while a session is running. Nothing styles Obsidian
+ * outside flow mode.
+ *
+ * There is deliberately not a single colour literal in this file. Flow mode
+ * inherits the user's theme rather than imposing one, which is also why light
+ * and dark mode need no special handling: every value below comes from an
+ * Obsidian CSS custom property that the theme already sets correctly for both.
+ */
+
+/* --- Dimming (PRD §6.2) ------------------------------------------------ */
+
+/* Opacity, never colour. Fading this way leaves theme colours, syntax
+   highlighting and Live Preview rendering intact underneath. The fallback
+   matches DEFAULT_SETTINGS.sealedOpacity, for the moment between the class
+   landing and the custom property being set. */
+.flow-writer-sealed {
+	opacity: var(--flow-writer-sealed-opacity, 0.25);
+}
+
+/* --- Chrome hiding (PRD §6.3) ------------------------------------------ */
+
+/* Full screen on the leaf container already excludes the ribbon, side panes,
+   tab bar and status bar. These are the pieces that live *inside* the leaf and
+   therefore come along with it. */
+
+.flow-writer-active .view-header {
+	display: none;
+}
+
+.flow-writer-active .view-content {
+	padding-top: 0;
+}
+
+.flow-writer-active .cm-scroller {
+	scrollbar-width: none;
+}
+
+.flow-writer-active .cm-scroller::-webkit-scrollbar {
+	display: none;
+}
+
+/* A fullscreen element paints on a black backdrop by default, which would show
+   through as a hard edge in light mode and around the readable-line-width
+   margins in any theme. */
+.flow-writer-active:fullscreen,
+.flow-writer-active:fullscreen::backdrop {
+	background-color: var(--background-primary);
+}
+
+/* Settings-driven, toggled by the session controller. */
+.flow-writer-hide-properties .metadata-container {
+	display: none;
+}
+
+.flow-writer-hide-inline-title .inline-title {
+	display: none;
+}
+
+/* --- Word count (PRD §6.6) --------------------------------------------- */
+
+/* Absolutely positioned inside .cm-editor, which CodeMirror already gives
+   position: relative, so the counter overlays the text and can never reflow a
+   line. pointer-events: none also keeps it clear of the mousedown guard, which
+   makes everything in the editor click-inert during a session. */
+.flow-writer-word-count {
+	position: absolute;
+	right: 1.5em;
+	bottom: 1.5em;
+	z-index: 10;
+	pointer-events: none;
+	user-select: none;
+	line-height: 1;
+	font-family: var(--font-interface);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+}
+
+/* --- Typewriter centering (PRD §6.7) ----------------------------------- */
+
+/* The last line cannot scroll to the middle of the screen unless there is
+   something below it to scroll into. Scoped to flow mode so normal editing is
+   untouched. */
+.flow-writer-active .cm-content {
+	padding-bottom: 50vh;
+}

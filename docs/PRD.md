@@ -115,9 +115,9 @@ which all text is immutable. Text between the seal point and the end of the docu
 | L1 | On entering flow mode, the seal point is set to the end of the document, and the cursor moves to the end of the document. All pre-existing note content is therefore sealed. |
 | L2 | Any edit that would insert, delete, or replace text at an offset **before** the seal point is rejected outright. The document is left untouched; no error, no beep, nothing happens. |
 | L3 | Edits at or after the seal point are allowed. This is what makes backspace work inside the word you're typing. |
-| L4 | When an edit inserts a **word-boundary character** — space, tab, newline — the seal point advances to the new end of the document. The word just typed, and the boundary character itself, are now sealed. |
+| L4 | When an edit inserts a **word-boundary character** — any whitespace: space, tab, newline — the seal point advances to just after the **last** boundary character, sealing the word just typed and the boundary itself. It does *not* advance to the end of the document: if a single edit inserts `hello world and`, the seal lands after `world ` and `and` stays live. |
 | L5 | Punctuation does not seal. `.`, `,`, `!`, `?` etc. are ordinary characters within the live word. (This matches the web app, which sealed only on keyCode 32 and 13.) |
-| L6 | The seal point never moves backward. There is no unseal operation, and no setting that provides one. |
+| L6 | Within a session the seal point never moves backward. There is no unseal operation and no setting that provides one. Exiting and re-entering starts a fresh session, which legitimately reseals from wherever the document then ends. |
 
 **Worked example.** Document is empty. Seal point = 0.
 Type `hello` → doc is `hello`, seal = 0, live word = `hello`. Backspace works.
@@ -148,8 +148,23 @@ plugin exits flow mode cleanly rather than leaving a locked editor pointed at th
 Correct restoration always beats airtight blocking.
 
 **What the lock never does.** The lock rejects edits; it never deletes, truncates, or rewrites
-the note. There is no code path in flow mode that removes existing content. This is a hard
-invariant and must have a test asserting it.
+the note. There is no code path in flow mode that removes existing content.
+
+Stated precisely, because the loose version ("flow mode never shortens the document") is false —
+backspacing inside the live word shortens it legitimately. The three invariants that must hold
+for every sequence of operations within a session, and that are property-tested:
+
+1. the seal point never decreases;
+2. the document is never shorter than the seal point;
+3. the first *N* characters of the document, where *N* is its length when the session began,
+   are byte-identical to what they were at that moment.
+
+**Two limits worth stating rather than assuming away.** A transaction dispatched with
+CodeMirror's `filter: false` skips every transaction filter, including ours — that is an
+engine-level escape hatch no plugin can close, so "no route can mutate sealed text" is true of
+every ordinary route but not literally every route. And "whitespace" via `/\s/` is broader than
+space/tab/newline: non-breaking space, the U+2000–200A family and U+FEFF all seal, while the
+zero-width joiners U+200B–200D do not.
 
 ### 6.2 Dimming
 
