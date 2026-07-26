@@ -73,6 +73,31 @@ function isSessionChange(tr: Transaction): boolean {
 	return tr.effects.some((effect) => effect.is(setFlowSession));
 }
 
+/**
+ * Does this transaction leave the sealed text byte-identical?
+ *
+ * The rule that actually matters is "sealed text must be unchanged afterwards",
+ * not "no change may begin before the seal point". The second is only a proxy
+ * for the first, and it leaks: several editor commands legitimately rewrite a
+ * range that includes text they are not altering. Obsidian's list continuation
+ * is the case that exposed it — pressing Enter in a list dispatches a change
+ * starting one character *before* the caret which re-inserts that character
+ * unchanged, so the proxy rejected a perfectly legal edit and Enter did nothing.
+ *
+ * Only `[earliest, sealPoint)` is compared. Nothing in the transaction touches
+ * the document before `earliest`, so the text there cannot have moved, which
+ * keeps this proportional to the size of the edit rather than the size of the
+ * note.
+ */
+function preservesSealedText(tr: Transaction, sealPoint: number, earliest: number): boolean {
+	// A document that no longer reaches the seal point has certainly lost some.
+	if (tr.newDoc.length < sealPoint) return false;
+	return (
+		tr.startState.doc.sliceString(earliest, sealPoint) ===
+		tr.newDoc.sliceString(earliest, sealPoint)
+	);
+}
+
 export const flowSessionField = StateField.define<FlowSession | null>({
 	create: () => null,
 
@@ -122,13 +147,21 @@ const lockFilter = EditorState.transactionFilter.of((tr) => {
 	// licence to rewrite the document: exempting those transactions would let
 	// a single dispatch both unlock and empty a sealed note.
 	if (tr.docChanged) {
-		let touchesSealed = false;
+		let earliest = Number.POSITIVE_INFINITY;
 		tr.changes.iterChanges((fromA) => {
-			if (fromA < session.sealPoint) touchesSealed = true;
+			if (fromA < earliest) earliest = fromA;
 		});
-		// Cancel outright. The document is left untouched and nothing is
-		// reported to the user — the keystroke simply does nothing.
-		if (touchesSealed) return [];
+
+		// Ordinary typing appends at the write-head and never reaches back, so
+		// the common case settles here without inspecting any text.
+		if (
+			earliest < session.sealPoint &&
+			!preservesSealedText(tr, session.sealPoint, earliest)
+		) {
+			// Cancel outright. The document is left untouched and nothing is
+			// reported to the user — the keystroke simply does nothing.
+			return [];
+		}
 	}
 
 	// Leaving flow mode hands the document back, caret included.

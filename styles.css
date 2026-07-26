@@ -26,6 +26,17 @@
    tab bar and status bar. These are the pieces that live *inside* the leaf and
    therefore come along with it. */
 
+/* Painted from the moment the class lands, not just once :fullscreen matches.
+   The leaf container has no background of its own — normally one shows through
+   from further in — so during the frames where Chromium is resizing the element
+   into full screen there is nothing to paint and the default backdrop flashes
+   through beneath the text. */
+.flow-writer-active,
+.flow-writer-active .workspace-leaf-content,
+.flow-writer-active .view-content {
+	background-color: var(--background-primary);
+}
+
 .flow-writer-active .view-header {
 	display: none;
 }
@@ -48,6 +59,20 @@
 .flow-writer-active:fullscreen,
 .flow-writer-active:fullscreen::backdrop {
 	background-color: var(--background-primary);
+}
+
+/* The active-line highlight marks where the caret is. In flow mode the caret is
+   pinned to the write-head and the surrounding text is the only thing not
+   dimmed, so the highlight says nothing that is not already obvious and reads as
+   a band of colour across an otherwise plain screen.
+
+   `!important` is deliberate: this has to beat whatever the user's theme sets,
+   and it is scoped to a running flow session, so it cannot affect normal
+   editing. */
+.flow-writer-active .cm-line.cm-active,
+.flow-writer-active .cm-activeLine,
+.flow-writer-active .cm-activeLineGutter {
+	background-color: transparent !important;
 }
 
 /* Settings-driven, toggled by the session controller. */

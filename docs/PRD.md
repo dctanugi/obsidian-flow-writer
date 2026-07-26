@@ -113,7 +113,7 @@ which all text is immutable. Text between the seal point and the end of the docu
 | # | Rule |
 |---|---|
 | L1 | On entering flow mode, the seal point is set to the end of the document, and the cursor moves to the end of the document. All pre-existing note content is therefore sealed. |
-| L2 | Any edit that would insert, delete, or replace text at an offset **before** the seal point is rejected outright. The document is left untouched; no error, no beep, nothing happens. |
+| L2 | Any edit that would **alter** sealed text is rejected outright. The document is left untouched; no error, no beep, nothing happens. Note this is stated as an outcome, not as "no change may begin before the seal point" — the latter is only a proxy for it, and several editor commands legitimately rewrite a range that includes text they do not change. Obsidian's list continuation is one: pressing Enter in a list dispatches a change beginning one character *before* the caret that re-inserts that character unchanged. A change may reach into sealed text provided the sealed text is byte-identical afterwards. |
 | L3 | Edits at or after the seal point are allowed. This is what makes backspace work inside the word you're typing. |
 | L4 | When an edit inserts a **word-boundary character** — any whitespace: space, tab, newline — the seal point advances to just after the **last** boundary character, sealing the word just typed and the boundary itself. It does *not* advance to the end of the document: if a single edit inserts `hello world and`, the seal lands after `world ` and `and` stays live. |
 | L5 | Punctuation does not seal. `.`, `,`, `!`, `?` etc. are ordinary characters within the live word. (This matches the web app, which sealed only on keyCode 32 and 13.) |

@@ -1145,6 +1145,36 @@ describe("regressions", () => {
 		expect(after.selection.main.head).toBe(after.doc.length);
 	});
 
+	it("allows a change that reaches into sealed text without altering it", () => {
+		// The exact shape Obsidian's list continuation dispatches: a change
+		// running from one character *before* the caret, whose replacement text
+		// begins with that same character. Rejecting it made Enter do nothing in
+		// a bulleted list whenever the preceding character was already sealed.
+		const state = fresh("- hello");
+		expect(seal(state)).toBe(7);
+
+		const after = state.update({
+			changes: { from: 6, to: 7, insert: "o\n- " },
+		}).state;
+
+		expect(text(after)).toBe("- hello\n- ");
+		// The sealed prefix survived untouched, the seal advanced, and the caret
+		// is back on the new write-head.
+		expect(text(after).slice(0, 7)).toBe("- hello");
+		expect(seal(after)).toBe(10);
+		expect(after.selection.main.head).toBe(10);
+	});
+
+	it("still rejects a change that reaches into sealed text and alters it", () => {
+		// The same shape as above but one character different, which is the whole
+		// distinction the rule now turns on.
+		const state = fresh("- hello");
+		const after = state.update({
+			changes: { from: 6, to: 7, insert: "X\n- " },
+		}).state;
+		expect(text(after)).toBe("- hello");
+	});
+
 	it("keeps typing alive after an edit tries to move the caret away", () => {
 		// The follow-on consequence of the above, and the reason it mattered:
 		// with the caret stranded, every keystroke targeted a sealed offset and
