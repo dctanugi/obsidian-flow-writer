@@ -20,11 +20,3 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
----
-
-This plugin is an independent reimplementation, for Obsidian, of the writing
-mechanic created by @paveli in the Flow Writer web app
-(https://github.com/paveli/Flow-Writer-App, https://flow-writer.com). No source
-code from that project is included or derived here; it is written from scratch
-against a different editor engine. Full credit for the original idea belongs to
-its author.
