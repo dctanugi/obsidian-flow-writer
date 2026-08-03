@@ -77,11 +77,11 @@
 
 /* Settings-driven, toggled by the session controller. */
 .flow-writer-hide-properties .metadata-container {
-	display: none;
+	display: none !important;
 }
 
 .flow-writer-hide-inline-title .inline-title {
-	display: none;
+	display: none !important;
 }
 
 /* --- Word count (PRD §6.6) --------------------------------------------- */

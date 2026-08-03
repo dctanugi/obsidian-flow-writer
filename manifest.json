@@ -1,9 +1,10 @@
 {
 	"id": "flow-writer",
 	"name": "Flow Writer",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"minAppVersion": "1.4.0",
-	"description": "A forward-only writing mode. Everything already written dims away, only the word you are typing stays lit, and finished words cannot be edited.",
-	"author": "David Cohen-Tanugi",
+	"description": "A distraction-free writing mode that promotes flow and focus. Everything already written dims away, only the word you are typing stays lit, and finished words cannot be edited.",
+	"author": "dctanugi",
+	"authorUrl": "https://github.com/dctanugi",
 	"isDesktopOnly": true
 }
