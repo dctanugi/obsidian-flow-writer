@@ -107,10 +107,7 @@ export function wordCountExtension(getMode: () => WordCountMode): Extension {
 				const from = Math.min(this.entryOffset, doc.length);
 
 				if (!this.el) {
-					// createElement + textContent only: Obsidian's community
-					// plugin guidelines forbid innerHTML.
-					this.el = document.createElement("div");
-					this.el.className = WORD_COUNT_CLASS;
+					this.el = createEl("div", { cls: WORD_COUNT_CLASS });
 					view.dom.appendChild(this.el);
 				}
 				this.el.textContent = label(

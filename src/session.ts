@@ -185,7 +185,7 @@ export class FlowSessionController {
 		if (this.editorView) {
 			try {
 				this.editorView.dispatch(exitFlowSpec());
-			} catch (error) {
+			} catch {
 				// Nothing useful to do: the state we were unlocking no longer exists.
 			}
 		}
@@ -298,7 +298,7 @@ export class FlowSessionController {
 		let request: Promise<void>;
 		try {
 			request = containerEl.requestFullscreen();
-		} catch (error) {
+		} catch {
 			this.onFullscreenRefused();
 			return;
 		}

@@ -42,7 +42,7 @@ export function typewriterExtension(isEnabled: () => boolean): Extension {
 				// satisfies that and coalesces bursts of fast typing into a
 				// single scroll.
 				if (this.frame !== 0) return;
-				this.frame = requestAnimationFrame(() => {
+				this.frame = window.requestAnimationFrame(() => {
 					this.frame = 0;
 					const target = this.pending;
 					if (target < 0 || target > this.view.state.doc.length) return;
@@ -60,7 +60,7 @@ export function typewriterExtension(isEnabled: () => boolean): Extension {
 			}
 
 			private cancel() {
-				if (this.frame !== 0) cancelAnimationFrame(this.frame);
+				if (this.frame !== 0) window.cancelAnimationFrame(this.frame);
 				this.frame = 0;
 				this.pending = -1;
 			}

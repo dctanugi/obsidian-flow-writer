@@ -45,10 +45,6 @@
 	padding-top: 0;
 }
 
-.flow-writer-active .cm-scroller {
-	scrollbar-width: none;
-}
-
 .flow-writer-active .cm-scroller::-webkit-scrollbar {
 	display: none;
 }
@@ -64,24 +60,22 @@
 /* The active-line highlight marks where the caret is. In flow mode the caret is
    pinned to the write-head and the surrounding text is the only thing not
    dimmed, so the highlight says nothing that is not already obvious and reads as
-   a band of colour across an otherwise plain screen.
-
-   `!important` is deliberate: this has to beat whatever the user's theme sets,
-   and it is scoped to a running flow session, so it cannot affect normal
-   editing. */
+   a band of colour across an otherwise plain screen. */
 .flow-writer-active .cm-line.cm-active,
 .flow-writer-active .cm-activeLine,
 .flow-writer-active .cm-activeLineGutter {
-	background-color: transparent !important;
+	background-color: transparent;
 }
 
-/* Settings-driven, toggled by the session controller. */
-.flow-writer-hide-properties .metadata-container {
-	display: none !important;
+/* Settings-driven, toggled by the session controller. Both classes land on the
+   same container element, so the combined selector beats Obsidian's default
+   single-class rules without needing !important. */
+.flow-writer-active.flow-writer-hide-properties .metadata-container {
+	display: none;
 }
 
-.flow-writer-hide-inline-title .inline-title {
-	display: none !important;
+.flow-writer-active.flow-writer-hide-inline-title .inline-title {
+	display: none;
 }
 
 /* --- Word count (PRD §6.6) --------------------------------------------- */

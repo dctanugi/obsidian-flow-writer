@@ -1,4 +1,4 @@
-import { App, Plugin, PluginSettingTab, Setting } from "obsidian";
+import { App, Plugin, PluginSettingTab, Setting, type SettingDefinitionItem } from "obsidian";
 import {
 	DEFAULT_SETTINGS,
 	SEALED_OPACITY_MAX,
@@ -49,6 +49,72 @@ export class FlowSettingTab extends PluginSettingTab {
 		this.host = host;
 	}
 
+	/** Declarative settings for Obsidian 1.13.0+ (settings search support). */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Sealed text opacity",
+				desc: "How faint already-written text becomes in flow mode. Lower is more distraction-free.",
+				control: {
+					type: "slider",
+					key: "sealedOpacity",
+					min: SEALED_OPACITY_MIN,
+					max: SEALED_OPACITY_MAX,
+					step: 0.05,
+				},
+			},
+			{
+				name: "Esc exits flow mode",
+				desc: "Turn this off if leaving flow mode should take deliberate intent. You can always leave via the command palette or your hotkey.",
+				control: { type: "toggle", key: "escExits" },
+			},
+			{
+				name: "Word count",
+				desc: "A faint counter in the corner of the screen while writing.",
+				control: {
+					type: "dropdown",
+					key: "wordCount",
+					options: {
+						off: "Hidden",
+						session: "This session",
+						"session-and-total": "This session and note total",
+					},
+				},
+			},
+			{
+				name: "Typewriter centering",
+				desc: "Keep the line you are writing vertically centered. Turn this off if you already use a typewriter-scroll plugin.",
+				control: { type: "toggle", key: "typewriterCentering" },
+			},
+			{
+				type: "group",
+				heading: "Hidden in flow mode",
+				items: [
+					{
+						name: "Note properties",
+						desc: "Hide the frontmatter properties panel.",
+						control: { type: "toggle", key: "hideProperties" },
+					},
+					{
+						name: "Inline title",
+						desc: "Hide the note title shown above the text.",
+						control: { type: "toggle", key: "hideInlineTitle" },
+					},
+				],
+			},
+		];
+	}
+
+	/**
+	 * Override so that changes go through saveSettings(), which also triggers
+	 * session.refresh() to apply class changes live during an active session.
+	 */
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		(this.host.settings as unknown as Record<string, unknown>)[key] = value;
+		await this.host.saveSettings();
+	}
+
+	/** Fallback for Obsidian < 1.13.0, which doesn't call getSettingDefinitions(). */
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -62,7 +128,6 @@ export class FlowSettingTab extends PluginSettingTab {
 				slider
 					.setLimits(SEALED_OPACITY_MIN, SEALED_OPACITY_MAX, 0.05)
 					.setValue(this.host.settings.sealedOpacity)
-					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.host.settings.sealedOpacity = value;
 						await this.host.saveSettings();

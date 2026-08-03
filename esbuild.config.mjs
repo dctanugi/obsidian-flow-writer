@@ -1,6 +1,6 @@
 import esbuild from "esbuild";
 import process from "process";
-import builtins from "builtin-modules";
+import { builtinModules } from "node:module";
 
 const prod = process.argv[2] === "production";
 
@@ -21,7 +21,7 @@ const external = [
 	"@lezer/common",
 	"@lezer/highlight",
 	"@lezer/lr",
-	...builtins,
+	...builtinModules,
 ];
 
 const context = await esbuild.context({
