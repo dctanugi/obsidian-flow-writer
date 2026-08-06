@@ -16,7 +16,7 @@
 import { Prec, type Extension } from "@codemirror/state";
 import { EditorView, keymap } from "@codemirror/view";
 
-import { isFlowActive } from "./lock";
+import { allowSealedEdit, isFlowActive } from "./lock";
 
 /**
  * Swallow the key, but only in an editor that is actually in flow mode.
@@ -69,6 +69,38 @@ function blockPointer(event: MouseEvent, view: EditorView): boolean {
  * opener in flow mode, insert only the opening character, and return true so
  * closebrackets never runs. Outside flow mode, return false = normal behaviour.
  */
+/**
+ * Bullet list exit via double-Enter.
+ *
+ * Pressing Enter on an empty list line (e.g. `- ` with no words typed)
+ * should exit the list and leave an empty line. Obsidian's built-in handler
+ * would delete the sealed `- ` prefix, but the lock cancels that because the
+ * text is sealed. Fix: intercept Enter when the last line is an empty list
+ * item, dispatch a deletion of the bullet prefix tagged with `allowSealedEdit`
+ * so the lock lets it through, and return true.
+ */
+const EMPTY_LIST_ITEM = /^(\s*)([-*+]|\d+[.)]) ?$/;
+
+const exitEmptyList = Prec.highest(
+	keymap.of([
+		{
+			key: "Enter",
+			run: (view: EditorView): boolean => {
+				if (!isFlowActive(view.state)) return false;
+				const doc = view.state.doc;
+				const lastLine = doc.line(doc.lines);
+				if (!EMPTY_LIST_ITEM.test(lastLine.text)) return false;
+				// Delete the bullet prefix text, keeping the empty line.
+				view.dispatch({
+					changes: { from: lastLine.from, to: lastLine.to, insert: "" },
+					effects: allowSealedEdit.of(),
+				});
+				return true;
+			},
+		},
+	]),
+);
+
 const autopairSuppression = Prec.highest(
 	keymap.of(
 		["(", "[", "{", '"', "'", "`"].map((ch) => ({
@@ -88,6 +120,7 @@ export function flowGuardsExtension(): Extension {
 		// Highest precedence so these run before Obsidian's and CodeMirror's own
 		// bindings for the same keys.
 		Prec.highest(keymap.of(blockedBindings)),
+		exitEmptyList,
 		autopairSuppression,
 		EditorView.domEventHandlers({
 			paste: swallow,

@@ -38,6 +38,17 @@ export interface FlowSession {
 export const setFlowSession = StateEffect.define<FlowSession | null>();
 
 /**
+ * Attach this effect to a transaction to allow it to modify sealed text.
+ *
+ * Used exclusively for legitimate editor commands that need to delete sealed
+ * content that the user never intended to keep — specifically, exiting an
+ * empty list bullet whose `- ` prefix was auto-inserted by Obsidian and is
+ * now sealed. The effect bypasses `preservesSealedText` but the caret-pinning
+ * and session-update steps still run normally.
+ */
+export const allowSealedEdit = StateEffect.define<void>();
+
+/**
  * True for characters that end a word and therefore seal it.
  *
  * Any whitespace seals — space, tab, newline. Punctuation does not; `.` and `,`
@@ -154,7 +165,9 @@ const lockFilter = EditorState.transactionFilter.of((tr) => {
 
 		// Ordinary typing appends at the write-head and never reaches back, so
 		// the common case settles here without inspecting any text.
+		const privileged = tr.effects.some((e) => e.is(allowSealedEdit));
 		if (
+			!privileged &&
 			earliest < session.sealPoint &&
 			!preservesSealedText(tr, session.sealPoint, earliest)
 		) {
