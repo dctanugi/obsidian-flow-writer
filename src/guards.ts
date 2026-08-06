@@ -62,11 +62,33 @@ function blockPointer(event: MouseEvent, view: EditorView): boolean {
 	return true;
 }
 
+/**
+ * Obsidian's closebrackets extension auto-pairs `(` as `()`, placing the
+ * cursor between them. The lock then pins the cursor to newDoc.length (after
+ * the `)`) so both characters land in the document. Fix: intercept each
+ * opener in flow mode, insert only the opening character, and return true so
+ * closebrackets never runs. Outside flow mode, return false = normal behaviour.
+ */
+const autopairSuppression = Prec.highest(
+	keymap.of(
+		["(", "[", "{", '"', "'", "`"].map((ch) => ({
+			key: ch,
+			run: (view: EditorView): boolean => {
+				if (!isFlowActive(view.state)) return false;
+				const pos = view.state.selection.main.head;
+				view.dispatch({ changes: { from: pos, to: pos, insert: ch } });
+				return true;
+			},
+		})),
+	),
+);
+
 export function flowGuardsExtension(): Extension {
 	return [
 		// Highest precedence so these run before Obsidian's and CodeMirror's own
 		// bindings for the same keys.
 		Prec.highest(keymap.of(blockedBindings)),
+		autopairSuppression,
 		EditorView.domEventHandlers({
 			paste: swallow,
 			// Note: `dragover` is left alone on purpose — preventing its default
