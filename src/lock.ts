@@ -48,6 +48,35 @@ export const setFlowSession = StateEffect.define<FlowSession | null>();
  */
 export const allowSealedEdit = StateEffect.define<void>();
 
+/** Matches a line that is only a list bullet marker with no typed content. */
+const EMPTY_LIST_LINE = /^(\s*)([-*+]|\d+[.)]) ?$/;
+
+/**
+ * Returns true when a transaction is an editor-generated "exit empty list"
+ * operation: the last line of the *start* document is an empty bullet prefix
+ * and all changes in the transaction are confined to that line (or the
+ * newline immediately before it).
+ *
+ * This covers the case where Obsidian's own list-continuation handler
+ * dispatches the exit transaction before our `Prec.highest` keymap handler
+ * gets a chance to run. Without this check the lock would cancel the
+ * transaction and the keymap handler would never fire (because the
+ * list-continuation handler already returned `true`).
+ */
+function isEmptyListExit(tr: Transaction): boolean {
+	const doc = tr.startState.doc;
+	const lastLine = doc.line(doc.lines);
+	if (!EMPTY_LIST_LINE.test(lastLine.text)) return false;
+	// All changes must start at or after the newline preceding the last line
+	// so we know the transaction touches only that bullet prefix and nothing sealed further back.
+	const minAllowed = Math.max(0, lastLine.from - 1);
+	let ok = true;
+	tr.changes.iterChanges((fromA) => {
+		if (fromA < minAllowed) ok = false;
+	});
+	return ok;
+}
+
 /**
  * True for characters that end a word and therefore seal it.
  *
@@ -165,7 +194,9 @@ const lockFilter = EditorState.transactionFilter.of((tr) => {
 
 		// Ordinary typing appends at the write-head and never reaches back, so
 		// the common case settles here without inspecting any text.
-		const privileged = tr.effects.some((e) => e.is(allowSealedEdit));
+		const privileged =
+			tr.effects.some((e) => e.is(allowSealedEdit)) ||
+			isEmptyListExit(tr);
 		if (
 			!privileged &&
 			earliest < session.sealPoint &&
