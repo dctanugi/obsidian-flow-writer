@@ -10,13 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
-      attestations: write
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Use Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18.x"
 
@@ -25,21 +23,13 @@ jobs:
           npm install
           npm run build
 
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: |
-            main.js
-            manifest.json
-            styles.css
-
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
 
-          gh release create "$tag" \
-            --title="$tag" \
-            --draft \
-            main.js manifest.json styles.css
+          gh release edit "$tag" --draft 2>/dev/null || \
+            gh release create "$tag" --title="$tag" --draft
+
+          gh release upload "$tag" main.js manifest.json styles.css --clobber
